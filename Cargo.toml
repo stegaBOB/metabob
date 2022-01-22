@@ -1,0 +1,28 @@
+[package]
+name = "metabob"
+version = "0.1.0"
+edition = "2021"
+description = "The Metaplex NFT-standard assortment of tools for very specific tasks that are unrelated. Inspired by Metaboss"
+
+[dependencies]
+log = "0.4.14"
+anyhow = "1.0.44"
+structopt = { version = "0.3" }
+serde = "1.0.130"
+serde_json = "1.0.68"
+serde_yaml = "0.8.21"
+solana-account-decoder = "1.9.4"
+solana-client = "1.9.4"
+solana-program = "1.9.4"
+solana-sdk = "1.9.4"
+spl-associated-token-account = "1.0.3"
+spl-token = "3.2.0"
+metaplex-token-metadata = "0.0.1"
+# mpl_token_metadata = "1.1.0"
+indicatif = { version = "0.16.2", features = ["rayon"] }
+borsh = "0.9.1"
+bs58 = "0.4.0"
+num_cpus = "1.13.0"
+ratelimit = "0.4.4"
+rayon = "1.5.1"
+thiserror = "1.0.30"
