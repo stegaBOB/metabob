@@ -6,21 +6,19 @@ use solana_account_decoder::UiAccountEncoding;
 use solana_client::{
     rpc_client::RpcClient,
     rpc_config::{RpcAccountInfoConfig, RpcProgramAccountsConfig},
-    rpc_filter::{Memcmp, RpcFilterType},
+    rpc_filter::RpcFilterType,
 };
-use solana_program::stake::state::Meta;
-use std::{time::{Duration, Instant}, fs::OpenOptions};
 use std::{
     fs::File,
-    io::BufReader,
-    str::FromStr,
     sync::{Arc, Mutex},
+};
+use std::{
+    fs::{self, OpenOptions},
+    time::Instant,
 };
 
 use crate::decode::{decode_mint_account, get_metadata_pda, get_metadata_struct};
-use solana_sdk::{
-    commitment_config::{CommitmentConfig, CommitmentLevel},
-};
+use solana_sdk::commitment_config::{CommitmentConfig, CommitmentLevel};
 use solana_sdk::{account::Account, pubkey::Pubkey};
 use spl_token::ID as TOKEN_PROGRAM_ID;
 
@@ -51,7 +49,50 @@ pub struct AccountStruct {
     metadata: MetadataInfo,
 }
 
-pub fn get_spl_accounts(client: &RpcClient, full_json: bool, output: String) -> Result<()> {
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TokenListEntry {
+    chainId: u8,
+    address: String,
+    symbol: String,
+    name: String,
+    decimals: u8,
+    logoURI: String,
+}
+
+impl TokenListEntry {
+    pub fn new(
+        address: String,
+        symbol: String,
+        name: String,
+        decimals: u8,
+        logoURI: String,
+    ) -> TokenListEntry {
+        let symbol = symbol.trim_matches(char::from(0)).to_string();
+        let name = name.trim_matches(char::from(0)).to_string();
+        let logoURI = logoURI.trim_matches(char::from(0)).to_string();
+
+        TokenListEntry {
+            chainId: 101,
+            address,
+            symbol,
+            name,
+            decimals,
+            logoURI,
+        }
+    }
+}
+
+pub fn do_everything(client: &RpcClient) -> Result<Vec<TokenListEntry>> {
+    let mint_accounts = get_mint_accounts(client, false)?;
+    let account_vec = parse_mint_accounts(client, Some(mint_accounts), false)?;
+    get_token_entries(client, Some(account_vec))
+}
+
+pub fn get_mint_accounts(client: &RpcClient, no_save: bool) -> Result<Vec<MintInfo>> {
+    let mut mint_accounts_file = OpenOptions::new()
+        .write(true)
+        .read(true)
+        .open("./mint_accounts.json")?;
     let filter1 = RpcFilterType::DataSize(82);
     let commitment = CommitmentConfig {
         commitment: CommitmentLevel::Confirmed,
@@ -71,28 +112,48 @@ pub fn get_spl_accounts(client: &RpcClient, full_json: bool, output: String) -> 
 
     println!("Looking for mint accounts. This may take a while...");
     let start = Instant::now();
-    let mint_accounts = client.get_program_accounts_with_config(&TOKEN_PROGRAM_ID, config)?;
+    let mint_tuple = client.get_program_accounts_with_config(&TOKEN_PROGRAM_ID, config)?;
     let duration = start.elapsed();
     println!(
         "Found {} mint accounts in {} minutes and {} seconds!",
-        mint_accounts.len(),
+        mint_tuple.len(),
         duration.as_secs() / 60,
         duration.as_secs() % 60
     );
-
     println!("Reformatting mint accounts");
-    let mint_accounts = accounts_to_mint_info(mint_accounts);
+    let mint_accounts = accounts_to_mint_info(mint_tuple);
     println!(
         "Found {} total fungible token mint accounts",
         mint_accounts.len()
     );
+    if !no_save {
+        println!("Saving fungible mint accounts file");
+        serde_json::to_writer(&mut mint_accounts_file, &mint_accounts)?;
+        println!("Saved fungible mint accounts file");
+    };
+    Ok(mint_accounts)
+}
 
-    let mut file = File::create(format!("{}", output))?;
-    println!("Saving fungible mint accounts file");
-    serde_json::to_writer(&mut file, &mint_accounts)?;
-    println!("Saved fungible mint accounts file");
+pub fn parse_mint_accounts(
+    client: &RpcClient,
+    mint_accounts: Option<Vec<MintInfo>>,
+    no_save: bool,
+) -> Result<Vec<AccountStruct>> {
+    let commitment = CommitmentConfig {
+        commitment: CommitmentLevel::Confirmed,
+    };
 
-    // if full_json {
+    let mint_accounts = match mint_accounts {
+        Some(m) => m,
+        None => {
+            println!("Reading mint accounts from file");
+            let mut mint_accounts_file =
+                File::open("./mint_accounts.json").expect("Error opening mint accounts file");
+            serde_json::from_reader(&mut mint_accounts_file)
+                .expect("Error parsing mint accounts file")
+        }
+    };
+
     println!("Adding metadata files!");
     let account_vec = add_metadata(client, commitment, mint_accounts);
 
@@ -100,11 +161,70 @@ pub fn get_spl_accounts(client: &RpcClient, full_json: bool, output: String) -> 
         "Total fungible mint accounts with metadata: {}",
         account_vec.len()
     );
-    let mut file = File::create("./better_output.json")?;
-    println!("Saving accounts file");
-    serde_json::to_writer(&mut file, &account_vec)?;
-    // }
-    Ok(())
+    if !no_save {
+        let mut file = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open("./full_accounts.json")
+            .expect("error creating full accounts file");
+        println!("Saving full accounts file");
+        serde_json::to_writer(&mut file, &account_vec)?;
+    };
+
+    Ok(account_vec)
+}
+
+pub fn get_token_entries(
+    client: &RpcClient,
+    full_accounts: Option<Vec<AccountStruct>>,
+) -> Result<Vec<TokenListEntry>> {
+    let account_vec = match full_accounts {
+        Some(a) => a,
+        None => {
+            println!("Reading full accounts from file");
+            let mut full_accounts_file = OpenOptions::new()
+                .write(true)
+                .read(true)
+                .open("./full_accounts.json")?;
+            serde_json::from_reader(&full_accounts_file).expect("Error parsing json file")
+        }
+    };
+    let account_vec = filter_accounts(account_vec).expect("Error filtering accounts");
+
+    println!(
+        "Total fungible mint accounts with metadata: {}",
+        account_vec.len()
+    );
+
+    let token_entries = get_metadata_vec(account_vec);
+
+    fs::create_dir("./draft");
+    let mut file = File::create("./draft/tokenlist.json")?;
+    println!("Saving tokenlist file");
+    serde_json::to_writer(&mut file, &token_entries)?;
+    Ok(token_entries)
+}
+
+fn accounts_to_mint_info(accounts: Vec<(Pubkey, Account)>) -> Vec<MintInfo> {
+    let mint_info: Arc<Mutex<Vec<MintInfo>>> = Arc::new(Mutex::new(Vec::new()));
+    accounts
+        .par_iter()
+        .progress()
+        .for_each(|(mint_pubkey, account)| {
+            let mint_data = decode_mint_account(account);
+            match mint_data {
+                Ok(m) => {
+                    let base: u64 = 10;
+                    if m.supply > base.pow(m.decimals as u32) {
+                        let mint_info = mint_info.clone();
+                        let new_data: MintInfo = (*mint_pubkey, account.clone()).into();
+                        mint_info.lock().unwrap().push(new_data);
+                    }
+                }
+                Err(_) => {}
+            }
+        });
+    Arc::try_unwrap(mint_info).unwrap().into_inner().unwrap()
 }
 
 fn add_metadata(
@@ -138,73 +258,41 @@ fn add_metadata(
     Arc::try_unwrap(account_vec).unwrap().into_inner().unwrap()
 }
 
-fn accounts_to_mint_info(accounts: Vec<(Pubkey, Account)>) -> Vec<MintInfo> {
-    let mint_info: Arc<Mutex<Vec<MintInfo>>> = Arc::new(Mutex::new(Vec::new()));
-    accounts
-        .par_iter()
-        .progress()
-        .for_each(|(mint_pubkey, account)| {
-            let mint_data = decode_mint_account(account);
-            match mint_data {
-                Ok(m) => {
-                    let base:u64 = 10;
-                    if m.supply > base.pow(m.decimals as u32) {
-                        let mint_info = mint_info.clone();
-                        let new_data: MintInfo = (*mint_pubkey, account.clone()).into();
-                        mint_info.lock().unwrap().push(new_data);
-                    }
-                }
-                Err(_) => {}
-            }
-        });
-    Arc::try_unwrap(mint_info).unwrap().into_inner().unwrap()
-}
-
-pub fn get_metadata(client: &RpcClient, output: String) -> Result<()> {
-    println!("Getting metadata");
-    let mut better_file = OpenOptions::new().write(true).read(true).open("./better_output.json")?;
-    let account_vec: Vec<AccountStruct> = serde_json::from_reader(&better_file).expect("Uh oh");
-
-    // let account_vec = filter_accounts(account_vec, better_file).expect("hmm");
-    
-    println!(
-        "Total fungible mint accounts with metadata: {}",
-        account_vec.len()
-    );
-
-    let token_entries = get_metadata_vec(account_vec);
-
-    let mut file = File::create("./draft/tokenlist.json")?;
-    println!("Saving tokenlist file");
-    serde_json::to_writer(&mut file, &token_entries)?;
-    Ok(())
-}
-
-fn filter_accounts(account_vec: Vec<AccountStruct>, mut file: File) -> Result<Vec<AccountStruct>, > {
+fn filter_accounts(account_vec: Vec<AccountStruct>) -> Result<Vec<AccountStruct>> {
+    let mut full_accounts_file = OpenOptions::new()
+        .write(true)
+        .read(true)
+        .open("./full_accounts.json")?;
     let new_account_vec: Arc<Mutex<Vec<AccountStruct>>> = Arc::new(Mutex::new(Vec::new()));
     println!("Filtering accounts...");
     account_vec
         .par_iter()
         .progress()
-        .for_each(|account_struct|{
-            let account =  &account_struct.mint.mint_account;
+        .for_each(|account_struct| {
+            let account = &account_struct.mint.mint_account;
             let mint_data = decode_mint_account(account);
             match mint_data {
                 Ok(m) => {
-                    let base:u64 = 10;
+                    let base: u64 = 10;
                     if m.supply > base.pow(m.decimals as u32) {
                         let new_account_vec = new_account_vec.clone();
                         let mint_info = account_struct.mint.clone();
                         let metadata_info = account_struct.metadata.clone();
-                        new_account_vec.lock().unwrap().push(AccountStruct{ metadata: metadata_info, mint: mint_info});
+                        new_account_vec.lock().unwrap().push(AccountStruct {
+                            metadata: metadata_info,
+                            mint: mint_info,
+                        });
                     }
                 }
                 Err(_) => {}
             }
         });
-    let account_vec = Arc::try_unwrap(new_account_vec).unwrap().into_inner().unwrap();
+    let account_vec = Arc::try_unwrap(new_account_vec)
+        .unwrap()
+        .into_inner()
+        .unwrap();
     println!("Saving new json");
-    serde_json::to_writer(&mut file, &account_vec)?;
+    serde_json::to_writer(&mut full_accounts_file, &account_vec)?;
     println!("Saved file of {} fungible token mints", account_vec.len());
     Ok(account_vec)
 }
@@ -256,41 +344,6 @@ pub fn do_stuff(client: &RpcClient) -> Result<()> {
 
     Ok(())
 }
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-struct TokenListEntry {
-    chainId: u8,
-    address: String,
-    symbol: String,
-    name: String,
-    decimals: u8,
-    logoURI: String,
-}
-
-impl TokenListEntry {
-    pub fn new(
-        address: String,
-        symbol: String,
-        name: String,
-        decimals: u8,
-        logoURI: String,
-    ) -> TokenListEntry {
-        let symbol = symbol.trim_matches(char::from(0)).to_string();
-        let name = name.trim_matches(char::from(0)).to_string();
-        let logoURI = logoURI.trim_matches(char::from(0)).to_string();
-
-        TokenListEntry {
-            chainId: 101,
-            address,
-            symbol,
-            name,
-            decimals,
-            logoURI,
-        }
-    }
-}
-
-
 
 // impl From<Account> for TokenListEntry {
 //     fn from(account: Account) -> Self {

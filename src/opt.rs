@@ -13,31 +13,48 @@ pub struct Opt {
     /// Timeout to override default value of 60 seconds
     #[structopt(short, long, default_value = "60")]
     pub timeout: u64,
-    
+
     #[structopt(subcommand)]
     pub command: Command,
 }
 
 #[derive(Debug, StructOpt)]
 pub enum Command {
-    /// Get SPL Token Mints
+    /// Stuff with SPL mints and Metadata
     #[structopt(name = "spl")]
     SPL {
+        #[structopt(subcommand)]
+        spl_subcommands: SplSubcommands,
+    },
+}
+
+#[derive(Debug, StructOpt)]
+pub enum SplSubcommands {
+    /// Get all tokens mints for the SPL Token List
+    #[structopt(name = "do_everything")]
+    DoEverything,
+
+    /// Get all fungible SPL token mints
+    #[structopt(name = "get_mints")]
+    GetMints {
+        /// Don't save mint accounts to file
         #[structopt(short, long)]
-        full_json: bool,
-
-        #[structopt(short, long, default_value = "./output.json")]
-        output: String,
+        no_save: bool,
     },
 
-    /// Get metadata stuff from file
-    #[structopt(name = "get-metadata")]
-    GET_METADATA {
-        #[structopt(short, long, default_value = "./better_output.json")]
-        output: String,
+    /// Parse mint accounts into account struct
+    #[structopt(name = "parse_mints")]
+    ProcessMints {
+        /// Don't save accounts to file
+        #[structopt(short, long)]
+        no_save: bool,
     },
 
-    /// Process stuff
-    #[structopt(name = "process-stuff")]
-    PROCESS_STUFF,
+    /// Get SPL Token list json
+    #[structopt(name = "get_token_list")]
+    GetTokenList,
+
+    /// Do stuff?
+    #[structopt(name = "do_stuff")]
+    DoStuff,
 }

@@ -1,5 +1,3 @@
-use solana_client::client_error::ClientErrorKind;
-use std::io;
 use thiserror::Error;
 
 #[derive(Error, Debug)]

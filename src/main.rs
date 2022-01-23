@@ -7,11 +7,9 @@ use metabob::parse::*;
 use metabob::process_subcommands::*;
 use solana_client::rpc_client::RpcClient;
 use solana_sdk::commitment_config::CommitmentConfig;
-use std::borrow::Borrow;
+use std::str::FromStr;
 use std::time::Duration;
 use structopt::StructOpt;
-use std::str::FromStr;
-
 
 fn main() -> Result<()> {
     let options = Opt::from_args();
@@ -37,12 +35,8 @@ fn main() -> Result<()> {
     println!("RPC: {}", &rpc);
     println!("Timeout: {}", options.timeout);
     match options.command {
-        Command::SPL { full_json, output } => process_spl(&client, full_json, output)?,
-        Command::GET_METADATA { output} => process_get_metadata(&client, output)?,
-        Command::PROCESS_STUFF => process_stuff(&client)?,
-    }
-
+        Command::SPL { spl_subcommands } => process_spl(&client, spl_subcommands)?,
+    };
     println!("FINISHED!");
     Ok(())
-
 }
