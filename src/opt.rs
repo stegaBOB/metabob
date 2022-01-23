@@ -3,7 +3,7 @@ use structopt::StructOpt;
 #[derive(Debug, StructOpt)]
 #[structopt(
     name = "Metabob",
-    about = "The Metaplex NFT-standard assortment of tools for very specific tasks that are unrelated. Inspired by Metaboss"
+    about = "The Metaplex NFT-standard assortment of tools for very specific tasks that are unrelated. Inspired by Metaboss."
 )]
 pub struct Opt {
     // RPC endpoint url
@@ -32,7 +32,11 @@ pub enum Command {
 pub enum SplSubcommands {
     /// Get all tokens mints for the SPL Token List
     #[structopt(name = "do_everything")]
-    DoEverything,
+    DoEverything {
+        /// Pretty print token list
+        #[structopt(short, long)]
+        pretty: bool,
+    },
 
     /// Get all fungible SPL token mints
     #[structopt(name = "get_mints")]
@@ -52,7 +56,11 @@ pub enum SplSubcommands {
 
     /// Get SPL Token list json
     #[structopt(name = "get_token_list")]
-    GetTokenList,
+    GetTokenList {
+        /// Pretty print token list
+        #[structopt(short, long)]
+        pretty: bool,
+    },
 
     /// Do stuff?
     #[structopt(name = "do_stuff")]

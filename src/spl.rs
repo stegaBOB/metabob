@@ -82,10 +82,10 @@ impl TokenListEntry {
     }
 }
 
-pub fn do_everything(client: &RpcClient) -> Result<Vec<TokenListEntry>> {
+pub fn do_everything(client: &RpcClient, pretty: bool) -> Result<Vec<TokenListEntry>> {
     let mint_accounts = get_mint_accounts(client, false)?;
     let account_vec = parse_mint_accounts(client, Some(mint_accounts), false)?;
-    get_token_entries(Some(account_vec))
+    get_token_entries(Some(account_vec), pretty)
 }
 
 pub fn get_mint_accounts(client: &RpcClient, no_save: bool) -> Result<Vec<MintInfo>> {
@@ -120,16 +120,16 @@ pub fn get_mint_accounts(client: &RpcClient, no_save: bool) -> Result<Vec<MintIn
         duration.as_secs() / 60,
         duration.as_secs() % 60
     );
-    println!("Reformatting mint accounts");
+    println!("Reformatting mint accounts...");
     let mint_accounts = accounts_to_mint_info(mint_tuple);
     println!(
         "Found {} total fungible token mint accounts",
         mint_accounts.len()
     );
     if !no_save {
-        println!("Saving fungible mint accounts file");
+        println!("Saving fungible mint accounts file...");
         serde_json::to_writer(&mut mint_accounts_file, &mint_accounts)?;
-        println!("Saved fungible mint accounts file");
+        println!("Saved fungible mint accounts file!");
     };
     Ok(mint_accounts)
 }
@@ -142,11 +142,18 @@ pub fn parse_mint_accounts(
     let commitment = CommitmentConfig {
         commitment: CommitmentLevel::Confirmed,
     };
+    if !no_save {
+        OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open("./full_accounts.json")
+            .expect("Error creating full accounts file");
+    }
 
     let mint_accounts = match mint_accounts {
         Some(m) => m,
         None => {
-            println!("Reading mint accounts from file");
+            println!("Reading mint accounts from file...");
             let mut mint_accounts_file =
                 File::open("./mint_accounts.json").expect("Error opening mint accounts file");
             serde_json::from_reader(&mut mint_accounts_file)
@@ -154,7 +161,7 @@ pub fn parse_mint_accounts(
         }
     };
 
-    println!("Adding metadata files!");
+    println!("Adding metadata files...");
     let account_vec = add_metadata(client, commitment, mint_accounts);
 
     println!(
@@ -164,21 +171,24 @@ pub fn parse_mint_accounts(
     if !no_save {
         let mut file = OpenOptions::new()
             .write(true)
-            .create_new(true)
             .open("./full_accounts.json")
-            .expect("error creating full accounts file");
-        println!("Saving full accounts file");
+            .expect("Error opening accounts file");
+        println!("Saving full accounts file...");
         serde_json::to_writer(&mut file, &account_vec)?;
+        println!("Saved full accounts file!");
     };
 
     Ok(account_vec)
 }
 
-pub fn get_token_entries(full_accounts: Option<Vec<AccountStruct>>) -> Result<Vec<TokenListEntry>> {
+pub fn get_token_entries(
+    full_accounts: Option<Vec<AccountStruct>>,
+    pretty: bool,
+) -> Result<Vec<TokenListEntry>> {
     let account_vec = match full_accounts {
         Some(a) => a,
         None => {
-            println!("Reading full accounts from file");
+            println!("Reading full accounts from file...");
             let full_accounts_file = OpenOptions::new()
                 .write(true)
                 .read(true)
@@ -187,18 +197,22 @@ pub fn get_token_entries(full_accounts: Option<Vec<AccountStruct>>) -> Result<Ve
         }
     };
     let account_vec = filter_accounts(account_vec).expect("Error filtering accounts");
-
     println!(
         "Total fungible mint accounts with metadata: {}",
         account_vec.len()
     );
-
     let token_entries = get_metadata_vec(account_vec);
 
-    fs::create_dir("./draft");
+    let _create_file = fs::create_dir("./draft");
     let mut file = File::create("./draft/tokenlist.json")?;
-    println!("Saving tokenlist file");
-    serde_json::to_writer(&mut file, &token_entries)?;
+    if pretty {
+        println!("Saving pretty tokenlist file...");
+        serde_json::to_writer_pretty(&mut file, &token_entries)?;
+    } else {
+        println!("Saving tokenlist file...");
+        serde_json::to_writer(&mut file, &token_entries)?;
+    };
+    println!("Saved tokenlist file!");
     Ok(token_entries)
 }
 
@@ -288,7 +302,7 @@ fn filter_accounts(account_vec: Vec<AccountStruct>) -> Result<Vec<AccountStruct>
         .unwrap()
         .into_inner()
         .unwrap();
-    println!("Saving new json");
+    println!("Saving new filtered accounts json...");
     serde_json::to_writer(&mut full_accounts_file, &account_vec)?;
     println!("Saved file of {} fungible token mints", account_vec.len());
     Ok(account_vec)
@@ -341,18 +355,3 @@ pub fn do_stuff(client: &RpcClient) -> Result<()> {
 
     Ok(())
 }
-
-// impl From<Account> for TokenListEntry {
-//     fn from(account: Account) -> Self {
-
-//     }
-// }
-
-// {
-// "chainId": 101,
-// "address": "6TgvYd7eApfcZ7K5Mur7MaUQ2xT7THB4cLHWuMkQdU5Z",
-// "symbol": "OTR",
-// "name": "Otter Finance",
-// "decimals": 9,
-// "logoURI": "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/6TgvYd7eApfcZ7K5Mur7MaUQ2xT7THB4cLHWuMkQdU5Z.png",
-// }
