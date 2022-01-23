@@ -85,7 +85,7 @@ impl TokenListEntry {
 pub fn do_everything(client: &RpcClient) -> Result<Vec<TokenListEntry>> {
     let mint_accounts = get_mint_accounts(client, false)?;
     let account_vec = parse_mint_accounts(client, Some(mint_accounts), false)?;
-    get_token_entries(client, Some(account_vec))
+    get_token_entries(Some(account_vec))
 }
 
 pub fn get_mint_accounts(client: &RpcClient, no_save: bool) -> Result<Vec<MintInfo>> {
@@ -174,15 +174,12 @@ pub fn parse_mint_accounts(
     Ok(account_vec)
 }
 
-pub fn get_token_entries(
-    client: &RpcClient,
-    full_accounts: Option<Vec<AccountStruct>>,
-) -> Result<Vec<TokenListEntry>> {
+pub fn get_token_entries(full_accounts: Option<Vec<AccountStruct>>) -> Result<Vec<TokenListEntry>> {
     let account_vec = match full_accounts {
         Some(a) => a,
         None => {
             println!("Reading full accounts from file");
-            let mut full_accounts_file = OpenOptions::new()
+            let full_accounts_file = OpenOptions::new()
                 .write(true)
                 .read(true)
                 .open("./full_accounts.json")?;

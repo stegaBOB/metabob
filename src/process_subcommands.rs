@@ -17,7 +17,7 @@ pub fn process_spl(client: &RpcClient, subcommands: SplSubcommands) -> Result<()
             parse_mint_accounts(client, None, no_save)?;
         }
         SplSubcommands::GetTokenList => {
-            get_token_entries(&client, None)?;
+            get_token_entries(None)?;
         }
         SplSubcommands::DoStuff => {
             do_stuff(client)?;
