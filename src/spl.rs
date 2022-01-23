@@ -196,7 +196,7 @@ pub fn get_token_entries(
             serde_json::from_reader(&full_accounts_file).expect("Error parsing json file")
         }
     };
-    let account_vec = filter_accounts(account_vec).expect("Error filtering accounts");
+    // let account_vec = filter_accounts(account_vec).expect("Error filtering accounts");
     println!(
         "Total fungible mint accounts with metadata: {}",
         account_vec.len()
