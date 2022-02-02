@@ -10,6 +10,10 @@ pub struct Opt {
     #[structopt(short, long)]
     pub rpc: Option<String>,
 
+    // Heavy RPC endpoint url
+    #[structopt(long)]
+    pub heavy_rpc: Option<String>,
+
     /// Timeout to override default value of 60 seconds
     #[structopt(short, long, default_value = "60")]
     pub timeout: u64,
@@ -33,9 +37,9 @@ pub enum SplSubcommands {
     /// Get all tokens mints for the SPL Token List
     #[structopt(name = "do_everything")]
     DoEverything {
-        /// Pretty print token list
+        /// Don't save intermediate files
         #[structopt(short, long)]
-        pretty: bool,
+        no_save: bool,
     },
 
     /// Get all fungible SPL token mints
@@ -46,20 +50,28 @@ pub enum SplSubcommands {
         no_save: bool,
     },
 
-    /// Parse mint accounts into account struct
-    #[structopt(name = "parse_mints")]
-    ProcessMints {
-        /// Don't save accounts to file
-        #[structopt(short, long)]
+    /// Get all metadata accounts
+    #[structopt(name = "get_metadata")]
+    GetMetadataAccounts {
+        /// Don't save metadata accounts to file
+        #[structopt(long)]
         no_save: bool,
     },
 
     /// Get SPL Token list json
     #[structopt(name = "get_token_list")]
     GetTokenList {
-        /// Pretty print token list
+        /// Don't save accounts to file
         #[structopt(short, long)]
-        pretty: bool,
+        no_save: bool,
+    },
+
+    /// Parse SPL Token list json
+    #[structopt(name = "parse_token_list")]
+    ParseTokenList {
+        /// Don't save accounts to file
+        #[structopt(long)]
+        no_save: bool,
     },
 
     /// Do stuff?

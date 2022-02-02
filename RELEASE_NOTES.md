@@ -1,3 +1,6 @@
+v0.2.2
+* Fixed everything
+
 v0.2.1
 * Added release notes
 * Removed filter method call as it was not neccesary

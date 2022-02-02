@@ -28,14 +28,22 @@ fn main() -> Result<()> {
         }
     };
 
+    let heavy_rpc = if let Some(heavy) = options.heavy_rpc {
+        heavy.clone()
+    } else {
+        rpc.clone()
+    };
+
     let commitment = CommitmentConfig::from_str(&commitment)?;
     let timeout = Duration::from_secs(options.timeout);
 
     let client = RpcClient::new_with_timeout_and_commitment(rpc.clone(), timeout, commitment);
+    let heavy_client = RpcClient::new_with_timeout_and_commitment(heavy_rpc.clone(), timeout, commitment); 
+
     println!("RPC: {}", &rpc);
     println!("Timeout: {}", options.timeout);
     match options.command {
-        Command::SPL { spl_subcommands } => process_spl(&client, spl_subcommands)?,
+        Command::SPL { spl_subcommands } => process_spl(&client, &heavy_client, spl_subcommands)?,
     };
     println!("FINISHED!");
     Ok(())

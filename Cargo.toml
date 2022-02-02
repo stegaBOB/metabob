@@ -1,6 +1,6 @@
 [package]
 name = "metabob"
-version = "0.2.1"
+version = "0.2.2"
 edition = "2021"
 description = "The Metaplex NFT-standard assortment of tools for very specific tasks that are unrelated. Inspired by Metaboss."
 repository = "https://github.com/stegabob/metabob"
