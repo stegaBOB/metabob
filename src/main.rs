@@ -21,10 +21,13 @@ fn main() -> Result<()> {
         if let Some(config) = sol_config {
             (config.json_rpc_url, config.commitment)
         } else {
-            error!(
-            "Could not find a valid Solana-CLI config file. Please specify a RPC manually with '-r' or set up your Solana-CLI config file."
+            info!(
+            "Could not find a valid Solana-CLI config file. Defaulting to https://psytrbhymqlkfrhudd.dev.genesysgo.net:8899/ devnet node."
         );
-            std::process::exit(1);
+            (
+                String::from("https://psytrbhymqlkfrhudd.dev.genesysgo.net:8899/"),
+                String::from("confirmed"),
+            )
         }
     };
 
@@ -38,12 +41,16 @@ fn main() -> Result<()> {
     let timeout = Duration::from_secs(options.timeout);
 
     let client = RpcClient::new_with_timeout_and_commitment(rpc.clone(), timeout, commitment);
-    let heavy_client = RpcClient::new_with_timeout_and_commitment(heavy_rpc.clone(), timeout, commitment); 
+    let heavy_client =
+        RpcClient::new_with_timeout_and_commitment(heavy_rpc.clone(), timeout, commitment);
 
     println!("RPC: {}", &rpc);
     println!("Timeout: {}", options.timeout);
     match options.command {
         Command::SPL { spl_subcommands } => process_spl(&client, &heavy_client, spl_subcommands)?,
+        Command::Metadata {
+            metadata_subcommands,
+        } => process_metadata(&client, metadata_subcommands)?,
     };
     println!("FINISHED!");
     Ok(())

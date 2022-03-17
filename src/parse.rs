@@ -32,5 +32,6 @@ pub fn parse_solana_config() -> Option<SolanaConfig> {
         Ok(f) => f,
         Err(_) => return None,
     };
+
     serde_yaml::from_reader(&conf_file).ok()
 }

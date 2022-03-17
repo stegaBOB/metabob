@@ -1,6 +1,8 @@
 pub mod constants;
 pub mod decode;
 pub mod errors;
+pub mod limiter;
+pub mod metadata;
 pub mod opt;
 pub mod parse;
 pub mod process_subcommands;

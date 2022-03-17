@@ -3,7 +3,7 @@ use structopt::StructOpt;
 #[derive(Debug, StructOpt)]
 #[structopt(
     name = "Metabob",
-    about = "The Metaplex NFT-standard assortment of tools for very specific tasks that are unrelated. Inspired by Metaboss."
+    about = "The Metaplex NFT-standard assortment of tools for very specific tasks that are unrelated. Inspired HEAVILY by Metaboss."
 )]
 pub struct Opt {
     // RPC endpoint url
@@ -29,6 +29,13 @@ pub enum Command {
     SPL {
         #[structopt(subcommand)]
         spl_subcommands: SplSubcommands,
+    },
+
+    /// Stuff directly with Token Metadata
+    #[structopt(name = "metadata")]
+    Metadata {
+        #[structopt(subcommand)]
+        metadata_subcommands: MetadataSubcommands,
     },
 }
 
@@ -77,4 +84,19 @@ pub enum SplSubcommands {
     /// Do stuff?
     #[structopt(name = "do_stuff")]
     DoStuff,
+}
+
+#[derive(Debug, StructOpt)]
+pub enum MetadataSubcommands {
+    /// Signs ALL NFTs that contain the wallet address in the creator array
+    #[structopt(name = "sign_all")]
+    SignAll {
+        /// Path to creator's keypair file
+        #[structopt(short, long)]
+        keypair: Option<String>,
+    }, // SignAllForCreator {
+       //     /// The wallet address that is being checked
+       //     #[structopt(short, long)]
+       //     creator: String,
+       // }
 }
