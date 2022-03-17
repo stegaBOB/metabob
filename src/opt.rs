@@ -94,9 +94,13 @@ pub enum MetadataSubcommands {
         /// Path to creator's keypair file
         #[structopt(short, long)]
         keypair: Option<String>,
-    }, // SignAllForCreator {
-       //     /// The wallet address that is being checked
-       //     #[structopt(short, long)]
-       //     creator: String,
-       // }
+    }, 
+
+    /// Counts all NFTs that have the provided creator listed in the creator array
+    #[structopt(name = "count_creators")]
+    CountCreators {
+        /// Base58 creator address
+        #[structopt(short, long)]
+        creator: String,
+    }
 }

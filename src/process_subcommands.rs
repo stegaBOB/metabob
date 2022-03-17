@@ -1,5 +1,5 @@
 use crate::{
-    metadata::sign_all,
+    metadata::{sign_all, count_creators},
     opt::{MetadataSubcommands, SplSubcommands},
     spl::{
         do_everything, do_stuff, get_metadata_accounts, get_mint_accounts, get_token_entries,
@@ -42,6 +42,9 @@ pub fn process_metadata(client: &RpcClient, subcommands: MetadataSubcommands) ->
     match subcommands {
         MetadataSubcommands::SignAll { keypair } => {
             sign_all(client, keypair)?;
+        }
+        MetadataSubcommands::CountCreators { creator } => {
+            count_creators(client, creator)?;
         }
     }
 

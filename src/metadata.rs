@@ -3,7 +3,7 @@ use crate::{
     constants::{MAX_NAME_LENGTH, MAX_SYMBOL_LENGTH, MAX_URI_LENGTH, USE_RATE_LIMIT},
     parse::parse_solana_config,
 };
-use anyhow::{anyhow, Result};
+use anyhow::{Result};
 use indicatif::ParallelProgressIterator;
 use log::{error, info};
 use mpl_token_metadata::{
@@ -26,40 +26,29 @@ use solana_sdk::{
     signer::{keypair::Keypair, Signer},
     transaction::Transaction,
 };
+use std::str::FromStr;
 use std::{
     fs::OpenOptions,
     sync::{Arc, Mutex},
 };
 
-pub fn sign_all(client: &RpcClient, keypair_path: Option<String>) -> Result<()> {
-    let solana_opts = parse_solana_config();
-    let keypair: Keypair = match keypair_path {
-        Some(path) => read_keypair_file(path).expect("Uh I cant read that keypair file :cry:"),
-        None => {
-            let solana_config = solana_opts
-                .expect("You didn't pass in a keypair and your Solana config is no bueno");
-            let keypair_path = solana_config.keypair_path;
-            read_keypair_file(keypair_path)
-                .expect("Uh I cant read that keypair file from your Solana config :cry:")
-        }
-    };
-
-    let creator_pubkey = keypair.pubkey();
+pub fn count_creators(client: &RpcClient, creator: String) -> Result<Vec<Pubkey>> {
+    let creator_pubkey = Pubkey::from_str(&creator).expect("Couldn't parse a pubkey from your option");
     let creator_string = creator_pubkey.to_string();
     let accounts_vec: Arc<Mutex<Vec<Pubkey>>> = Arc::new(Mutex::new(Vec::new()));
 
     let index_vec: Vec<usize> = vec![0, 1, 2, 3, 4];
-    println!("Looking for metadata accounts that I can sign...");
+    println!("Looking for metadata accounts that the following address can sign: {}", creator_string);
     index_vec.par_iter().for_each(|i| {
         let accounts_vec = accounts_vec.clone();
-        let mut next_accounts = get_metadata_creator_accounts(client, &creator_string, i.clone())
+        let next_accounts = get_metadata_creator_accounts(client, &creator_string, i.clone())
             .expect(&format!("Couldn't finish the GPA for creator index {}", i));
         println!(
             "Found {} metadata accounts with creator address in position {}",
             next_accounts.len(),
             i
         );
-        let mut unsigned_mints: Arc<Mutex<Vec<Pubkey>>> = Arc::new(Mutex::new(Vec::new()));
+        let unsigned_mints: Arc<Mutex<Vec<Pubkey>>> = Arc::new(Mutex::new(Vec::new()));
         next_accounts.par_iter().for_each(|(pubkey, account)| {
             let mut account = account.clone();
             let account_info = AccountInfo::from((pubkey, &mut account));
@@ -115,8 +104,29 @@ pub fn sign_all(client: &RpcClient, keypair_path: Option<String>) -> Result<()> 
                 serde_json::to_writer(&mut f, &accounts_vec);
             }
         }
+    }
+    Ok(accounts_vec)
+}
 
-        println!("Successfully saved both files... Now signing metadata...");
+pub fn sign_all(client: &RpcClient, keypair_path: Option<String>) -> Result<()> {
+    let solana_opts = parse_solana_config();
+    let keypair: Keypair = match keypair_path {
+        Some(path) => read_keypair_file(path).expect("Uh I cant read that keypair file :cry:"),
+        None => {
+            let solana_config = solana_opts
+                .expect("You didn't pass in a keypair and your Solana config is no bueno");
+            let keypair_path = solana_config.keypair_path;
+            read_keypair_file(keypair_path)
+                .expect("Uh I cant read that keypair file from your Solana config :cry:")
+        }
+    };
+
+    let creator_pubkey = keypair.pubkey();
+    let creator_string = creator_pubkey.to_string();
+    let accounts_vec = count_creators(&client, creator_string)?;
+
+    if accounts_vec.len() > 0 {
+        println!("Now signing metadata...");
 
         let use_rate_limit = *USE_RATE_LIMIT.read().unwrap();
         let handle = create_rate_limiter();

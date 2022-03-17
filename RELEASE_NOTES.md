@@ -1,4 +1,7 @@
 v0.3.1
+* Split the sign_all command into 2; added a count_creators command that sees how many nfts contain the address in the creator array.
+
+v0.3.1
 * Bug fixes
 
 v0.3.0
