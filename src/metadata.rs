@@ -91,7 +91,7 @@ pub fn sign_all(client: &RpcClient, keypair_path: Option<String>) -> Result<()> 
         accounts_vec.len()
     );
 
-    if accounts_vec.len() >= 0 {
+    if accounts_vec.len() > 0 {
         let file1 = OpenOptions::new()
             .write(true)
             .create(true)
