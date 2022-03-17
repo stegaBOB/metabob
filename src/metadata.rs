@@ -59,7 +59,7 @@ pub fn count_creators(client: &RpcClient, creator: String) -> Result<Vec<Pubkey>
             .unwrap()
             .into_inner()
             .unwrap();
-        println!("In position {}:\n\tFound {} unverified of {} total", i,
+        println!("In position {}:\n  Found {} unverified of {} total", i,
             unsigned_mints.len(),
             total
         );
