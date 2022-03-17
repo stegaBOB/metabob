@@ -1,3 +1,6 @@
+v0.3.1
+* Bug fixes
+
 v0.3.0
 * Added the metadata module, which includes the sign_all command for [Change](https://getchange.io/metaplex/)! Also wrote some "docs".
 
