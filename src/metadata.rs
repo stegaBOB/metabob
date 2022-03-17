@@ -43,11 +43,7 @@ pub fn count_creators(client: &RpcClient, creator: String) -> Result<Vec<Pubkey>
         let accounts_vec = accounts_vec.clone();
         let next_accounts = get_metadata_creator_accounts(client, &creator_string, i.clone())
             .expect(&format!("Couldn't finish the GPA for creator index {}", i));
-        println!(
-            "Found {} metadata accounts with creator address in position {}",
-            next_accounts.len(),
-            i
-        );
+        let total = next_accounts.len();
         let unsigned_mints: Arc<Mutex<Vec<Pubkey>>> = Arc::new(Mutex::new(Vec::new()));
         next_accounts.par_iter().for_each(|(pubkey, account)| {
             let mut account = account.clone();
@@ -63,10 +59,9 @@ pub fn count_creators(client: &RpcClient, creator: String) -> Result<Vec<Pubkey>
             .unwrap()
             .into_inner()
             .unwrap();
-        println!(
-            "Found {} metadata accounts with creator address in position {} that are unverified",
+        println!("In position {}:\n\tFound {} unverified of {} total", i,
             unsigned_mints.len(),
-            i
+            total
         );
         accounts_vec.lock().unwrap().append(&mut unsigned_mints);
     });
