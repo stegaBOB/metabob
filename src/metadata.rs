@@ -3,7 +3,7 @@ use crate::{
     constants::{MAX_NAME_LENGTH, MAX_SYMBOL_LENGTH, MAX_URI_LENGTH, USE_RATE_LIMIT},
     parse::parse_solana_config,
 };
-use anyhow::{Result};
+use anyhow::Result;
 use indicatif::ParallelProgressIterator;
 use log::{error, info};
 use mpl_token_metadata::{
@@ -33,16 +33,20 @@ use std::{
 };
 
 pub fn count_creators(client: &RpcClient, creator: String) -> Result<Vec<Pubkey>> {
-    let creator_pubkey = Pubkey::from_str(&creator).expect("Couldn't parse a pubkey from your option");
+    let creator_pubkey =
+        Pubkey::from_str(&creator).expect("Couldn't parse a pubkey from your option");
     let creator_string = creator_pubkey.to_string();
     let accounts_vec: Arc<Mutex<Vec<Pubkey>>> = Arc::new(Mutex::new(Vec::new()));
 
     let index_vec: Vec<usize> = vec![0, 1, 2, 3, 4];
-    println!("Looking for metadata accounts that the following address can sign: {}", creator_string);
+    println!(
+        "Looking for metadata accounts that the following address can sign: {}",
+        creator_string
+    );
     index_vec.par_iter().for_each(|i| {
         let accounts_vec = accounts_vec.clone();
-        let next_accounts = get_metadata_creator_accounts(client, &creator_string, i.clone())
-            .expect(&format!("Couldn't finish the GPA for creator index {}", i));
+        let next_accounts = get_metadata_creator_accounts(client, &creator_string, *i)
+            .unwrap_or_else(|_| panic!("Couldn't finish the GPA for creator index {}", i));
         let total = next_accounts.len();
         let unsigned_mints: Arc<Mutex<Vec<Pubkey>>> = Arc::new(Mutex::new(Vec::new()));
         next_accounts.par_iter().for_each(|(pubkey, account)| {
@@ -52,14 +56,16 @@ pub fn count_creators(client: &RpcClient, creator: String) -> Result<Vec<Pubkey>
                 Metadata::from_account_info(&account_info).expect("Couldn't deserialize metadata");
             let creator = &metadata_account.data.creators.unwrap()[*i];
             if !creator.verified {
-                unsigned_mints.lock().unwrap().push(pubkey.clone());
+                unsigned_mints.lock().unwrap().push(*pubkey);
             }
         });
         let mut unsigned_mints = Arc::try_unwrap(unsigned_mints)
             .unwrap()
             .into_inner()
             .unwrap();
-        println!("In position {}:\n  Found {} unverified of {} total", i,
+        println!(
+            "In position {}:\n  Found {} unverified of {} total",
+            i,
             unsigned_mints.len(),
             total
         );
@@ -75,7 +81,7 @@ pub fn count_creators(client: &RpcClient, creator: String) -> Result<Vec<Pubkey>
         accounts_vec.len()
     );
 
-    if accounts_vec.len() > 0 {
+    if !accounts_vec.is_empty() {
         let file1 = OpenOptions::new()
             .write(true)
             .create(true)
@@ -84,7 +90,7 @@ pub fn count_creators(client: &RpcClient, creator: String) -> Result<Vec<Pubkey>
             Err(_) => println!("Error opening metadata_keys file"),
             Ok(mut f) => {
                 println!("Saving metadata list info file...");
-                serde_json::to_writer(&mut f, &accounts_strings_vec);
+                serde_json::to_writer(&mut f, &accounts_strings_vec)?;
             }
         }
 
@@ -96,7 +102,7 @@ pub fn count_creators(client: &RpcClient, creator: String) -> Result<Vec<Pubkey>
             Err(_) => println!("Error opening metadata pubkeys file"),
             Ok(mut f) => {
                 println!("Saving metadata pubkeys info file...");
-                serde_json::to_writer(&mut f, &accounts_vec);
+                serde_json::to_writer(&mut f, &accounts_vec)?;
             }
         }
     }
@@ -118,9 +124,9 @@ pub fn sign_all(client: &RpcClient, keypair_path: Option<String>) -> Result<()> 
 
     let creator_pubkey = keypair.pubkey();
     let creator_string = creator_pubkey.to_string();
-    let accounts_vec = count_creators(&client, creator_string)?;
+    let accounts_vec = count_creators(client, creator_string)?;
 
-    if accounts_vec.len() > 0 {
+    if !accounts_vec.is_empty() {
         println!("Now signing metadata...");
 
         let use_rate_limit = *USE_RATE_LIMIT.read().unwrap();
@@ -148,7 +154,7 @@ pub fn sign_all(client: &RpcClient, keypair_path: Option<String>) -> Result<()> 
 // From metaboss
 pub fn get_metadata_creator_accounts(
     client: &RpcClient,
-    creator: &String,
+    creator: &str,
     position: usize,
 ) -> Result<Vec<(Pubkey, Account)>> {
     if position > 4 {

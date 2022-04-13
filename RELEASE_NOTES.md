@@ -1,4 +1,9 @@
-v0.3.1
+v0.4.0
+* Adds the gumdrop module, which can generate random claim json files of arbitrary length
+* Satisfied Clippy
+* Fixed the typo in the release notes
+
+v0.3.3
 * Split the sign_all command into 2; added a count_creators command that sees how many nfts contain the address in the creator array.
 
 v0.3.1

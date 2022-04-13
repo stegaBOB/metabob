@@ -16,23 +16,21 @@ fn main() -> Result<()> {
     let sol_config = parse_solana_config();
 
     let (rpc, commitment) = if let Some(cli_rpc) = options.rpc {
-        (cli_rpc.clone(), String::from("confirmed"))
+        (cli_rpc, String::from("confirmed"))
+    } else if let Some(config) = sol_config {
+        (config.json_rpc_url, config.commitment)
     } else {
-        if let Some(config) = sol_config {
-            (config.json_rpc_url, config.commitment)
-        } else {
-            info!(
-            "Could not find a valid Solana-CLI config file. Defaulting to https://psytrbhymqlkfrhudd.dev.genesysgo.net:8899/ devnet node."
-        );
-            (
-                String::from("https://psytrbhymqlkfrhudd.dev.genesysgo.net:8899/"),
-                String::from("confirmed"),
-            )
-        }
+        info!(
+        "Could not find a valid Solana-CLI config file. Defaulting to https://psytrbhymqlkfrhudd.dev.genesysgo.net:8899/ devnet node."
+    );
+        (
+            String::from("https://psytrbhymqlkfrhudd.dev.genesysgo.net:8899/"),
+            String::from("confirmed"),
+        )
     };
 
     let heavy_rpc = if let Some(heavy) = options.heavy_rpc {
-        heavy.clone()
+        heavy
     } else {
         rpc.clone()
     };
@@ -41,8 +39,7 @@ fn main() -> Result<()> {
     let timeout = Duration::from_secs(options.timeout);
 
     let client = RpcClient::new_with_timeout_and_commitment(rpc.clone(), timeout, commitment);
-    let heavy_client =
-        RpcClient::new_with_timeout_and_commitment(heavy_rpc.clone(), timeout, commitment);
+    let heavy_client = RpcClient::new_with_timeout_and_commitment(heavy_rpc, timeout, commitment);
 
     println!("RPC: {}", &rpc);
     println!("Timeout: {}", options.timeout);
@@ -51,6 +48,9 @@ fn main() -> Result<()> {
         Command::Metadata {
             metadata_subcommands,
         } => process_metadata(&client, metadata_subcommands)?,
+        Command::Gumdrop {
+            gumdrop_subcommands,
+        } => process_gumdrop(gumdrop_subcommands)?,
     };
     println!("FINISHED!");
     Ok(())

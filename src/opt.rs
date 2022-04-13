@@ -37,6 +37,13 @@ pub enum Command {
         #[structopt(subcommand)]
         metadata_subcommands: MetadataSubcommands,
     },
+
+    /// Stuff with gumdrop
+    #[structopt(name = "gumdrop")]
+    Gumdrop {
+        #[structopt(subcommand)]
+        gumdrop_subcommands: GumdropSubcommands,
+    },
 }
 
 #[derive(Debug, StructOpt)]
@@ -94,7 +101,7 @@ pub enum MetadataSubcommands {
         /// Path to creator's keypair file
         #[structopt(short, long)]
         keypair: Option<String>,
-    }, 
+    },
 
     /// Counts all NFTs that have the provided creator listed in the creator array
     #[structopt(name = "count_creators")]
@@ -102,5 +109,16 @@ pub enum MetadataSubcommands {
         /// Base58 creator address
         #[structopt(short, long)]
         creator: String,
-    }
+    },
+}
+
+#[derive(Debug, StructOpt)]
+pub enum GumdropSubcommands {
+    /// Makes a gumdrop claim list of random wallets
+    #[structopt(name = "make_list")]
+    MakeList {
+        /// Number of wallets to make the list from
+        #[structopt(short, long)]
+        number: u64,
+    },
 }

@@ -117,13 +117,14 @@ impl AccountStruct {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TokenListEntry {
-    chainId: u8,
+    chain_id: u8,
     address: String,
     symbol: String,
     name: String,
     decimals: u8,
-    logoURI: String,
+    logo_uri: String,
 }
 
 impl TokenListEntry {
@@ -139,12 +140,12 @@ impl TokenListEntry {
         let logo_uri = logo_uri.trim_matches(char::from(0)).to_string();
 
         TokenListEntry {
-            chainId: 101,
+            chain_id: 101,
             address,
             symbol,
             name,
             decimals,
-            logoURI: logo_uri,
+            logo_uri,
         }
     }
 }
@@ -171,8 +172,7 @@ pub fn do_everything(
     let fungible_mint_accounts = get_mint_accounts(heavy_client, no_save)?;
     let account_info = get_metadata_accounts(client, Some(fungible_mint_accounts), no_save)?;
     let token_list = get_token_entries(Some(account_info), no_save)?;
-    let uri_token_list = parse_token_uri(Some(token_list), false);
-    uri_token_list
+    parse_token_uri(Some(token_list), false)
 }
 
 pub fn get_mint_accounts(client: &RpcClient, no_save: bool) -> Result<Vec<MintInfo>> {
@@ -267,7 +267,7 @@ pub fn get_metadata_accounts(
             if let Some(account) = account {
                 let account_info = account_info.clone();
                 let metadata_info = MetadataInfo::try_from((metadata_pubkey, account));
-                if metadata_info.is_ok() {
+                if let Ok(..) = metadata_info {
                     account_info.lock().unwrap().push(AccountStruct::new(
                         mint_info.clone(),
                         metadata_info.unwrap(),
@@ -392,7 +392,7 @@ pub fn parse_token_uri(
 
     println!("Parsing token list...");
     token_entries.par_iter().progress().for_each(|entry| {
-        if entry.logoURI == "" {
+        if entry.logo_uri.is_empty() {
             let no_uri_list = no_uri_list.clone();
             no_uri_list.lock().unwrap().push(entry.clone());
         } else {
@@ -495,7 +495,7 @@ fn get_token_entry_vec(account_vec: Vec<AccountStruct>) -> Vec<TokenListEntry> {
         .into_inner()
         .unwrap()
 }
-pub fn do_stuff(client: &RpcClient) -> Result<()> {
+pub fn do_stuff() -> Result<()> {
     Ok(())
 }
 

@@ -6,7 +6,7 @@ pub const MAX_CREATOR_LEN: usize = 32 + 1 + 1;
 use lazy_static::lazy_static;
 /// Rest of this file all from metaboss
 use std::{collections::HashMap, sync::RwLock};
-pub const PUBLIC_RPC_URLS: &'static [&'static str] = &[
+pub const PUBLIC_RPC_URLS: &[&str] = &[
     "https://api.devnet.solana.com",
     "https://api.testnet.solana.com",
     "https://api.mainnet-beta.solana.com",

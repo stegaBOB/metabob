@@ -1,5 +1,7 @@
+use crate::gumdrop::make_list;
+use crate::opt::GumdropSubcommands;
 use crate::{
-    metadata::{sign_all, count_creators},
+    metadata::{count_creators, sign_all},
     opt::{MetadataSubcommands, SplSubcommands},
     spl::{
         do_everything, do_stuff, get_metadata_accounts, get_mint_accounts, get_token_entries,
@@ -31,7 +33,7 @@ pub fn process_spl(
             parse_token_uri(None, no_save)?;
         }
         SplSubcommands::DoStuff => {
-            do_stuff(client)?;
+            do_stuff()?;
         }
     }
 
@@ -45,6 +47,16 @@ pub fn process_metadata(client: &RpcClient, subcommands: MetadataSubcommands) ->
         }
         MetadataSubcommands::CountCreators { creator } => {
             count_creators(client, creator)?;
+        }
+    }
+
+    Ok(())
+}
+
+pub fn process_gumdrop(subcommands: GumdropSubcommands) -> Result<()> {
+    match subcommands {
+        GumdropSubcommands::MakeList { number } => {
+            make_list(number)?;
         }
     }
 

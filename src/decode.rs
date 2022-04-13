@@ -1,7 +1,6 @@
 use crate::errors::DecodeError;
 use metaplex_token_metadata::state::Metadata;
 use metaplex_token_metadata::ID as TOKEN_METADATA_PROGRAM_ID;
-use solana_account_decoder;
 use solana_program::{borsh::try_from_slice_unchecked, program_pack::Pack};
 use solana_sdk::{account::Account, pubkey::Pubkey};
 use spl_token::state::Mint;
