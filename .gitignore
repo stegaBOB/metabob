@@ -1,3 +1,4 @@
 /target
 /draft/
 *.json
+.idea
