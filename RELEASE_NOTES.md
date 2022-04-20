@@ -1,3 +1,6 @@
+v0.5.0
+* Improves the gumdrop module. Now more customizable and stuff.
+
 v0.4.0
 * Adds the gumdrop module, which can generate random claim json files of arbitrary length
 * Satisfied Clippy

@@ -55,8 +55,13 @@ pub fn process_metadata(client: &RpcClient, subcommands: MetadataSubcommands) ->
 
 pub fn process_gumdrop(subcommands: GumdropSubcommands) -> Result<()> {
     match subcommands {
-        GumdropSubcommands::MakeList { number } => {
-            make_list(number)?;
+        GumdropSubcommands::MakeList {
+            number,
+            amount,
+            repeat,
+            pubkey_path,
+        } => {
+            make_list(number, amount, repeat, pubkey_path)?;
         }
     }
 

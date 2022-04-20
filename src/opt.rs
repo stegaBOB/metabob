@@ -120,5 +120,17 @@ pub enum GumdropSubcommands {
         /// Number of wallets to make the list from
         #[structopt(short, long)]
         number: u64,
+
+        /// Amount of tokens that each wallet gets
+        #[structopt(short, long)]
+        amount: u64,
+
+        /// Number of times to make a list
+        #[structopt(short, long)]
+        repeat: Option<u64>,
+
+        /// Path to file of base58 pubkeys to chuck in the gumdrop in array form
+        #[structopt(short, long)]
+        pubkey_path: Option<String>,
     },
 }
